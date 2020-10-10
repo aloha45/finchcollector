@@ -5,6 +5,8 @@ from .models import Finch, Seed
 from .forms import FeedingForm
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 # from django.http import HttpResponse
 # Create your views here.
 
@@ -14,10 +16,12 @@ def home(request):
 def about(request):
     return render(request, 'about.html')
 
+@login_required
 def finch_index(request):
-    finches = Finch.objects.all()
+    finches = Finch.objects.filter(user=request.user)
     return render(request, 'finches/index.html', { 'finches': finches })
 
+@login_required
 def finches_detail(request, finch_id):
     finch = Finch.objects.get(id=finch_id)
     seeds_finch_doesnt_have = Seed.objects.exclude(id__in = finch.seeds.all().values_list('id'))
@@ -25,6 +29,7 @@ def finches_detail(request, finch_id):
     return render(request, 'finches/detail.html', {'finch' : finch, 'feeding_form': feeding_form, 'seeds': seeds_finch_doesnt_have
     })
 
+@login_required
 def add_feeding(request, finch_id):
     form = FeedingForm(request.POST)
     if form.is_valid():
@@ -32,7 +37,7 @@ def add_feeding(request, finch_id):
         new_feeding.finch_id = finch_id
         new_feeding.save()
     return redirect('detail', finch_id=finch_id)
-
+@login_required
 def assoc_seed(request, finch_id, seed_id):
     Finch.objects.get(id=finch_id).seeds.add(seed_id)
     return redirect ('detail', finch_id=finch_id)
@@ -50,7 +55,7 @@ def signup(request):
     form = UserCreationForm()
     context = {'form': form, 'error_message': error_message}
     return render(request, 'registration/signup.html', context)
-class FinchCreate(CreateView):
+class FinchCreate(LoginRequiredMixin, CreateView):
     model = Finch
     fields = ['name', 'size', 'color', 'age']
 
@@ -58,28 +63,28 @@ class FinchCreate(CreateView):
         form.instance.user = self.request.user
         return super().form_valid(form)
 
-class FinchUpdate(UpdateView):
+class FinchUpdate(LoginRequiredMixin, UpdateView):
     model = Finch
     fields = ['size', 'color', 'age']
 
-class FinchDelete(DeleteView):
+class FinchDelete(LoginRequiredMixin, DeleteView):
     model = Finch
     success_url = '/finches/'
 
-class SeedList(ListView):
+class SeedList(LoginRequiredMixin, ListView):
   model = Seed
 
-class SeedDetail(DetailView):
+class SeedDetail(LoginRequiredMixin, DetailView):
   model = Seed
 
-class SeedCreate(CreateView):
+class SeedCreate(LoginRequiredMixin, CreateView):
   model = Seed
   fields = '__all__'
 
-class SeedUpdate(UpdateView):
+class SeedUpdate(LoginRequiredMixin, UpdateView):
   model = Seed
   fields = ['name', 'color']
 
-class SeedDelete(DeleteView):
+class SeedDelete(LoginRequiredMixin, DeleteView):
   model = Seed
   success_url = '/seeds/'
